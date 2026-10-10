@@ -1,7 +1,7 @@
 # Architecture
 
 The CLI coordinates small modules; business logic is independent of terminal output.
-The current implementation has no network path. Component interfaces will be
+Only the browser crawler has a target network path. Component interfaces will be
 introduced when there are actual competing implementations, not speculatively.
 
 | Module | Responsibility | Status |
@@ -11,7 +11,9 @@ introduced when there are actual competing implementations, not speculatively.
 | `asvs/importer.py` | Bounded UTF-8 JSON parsing, validation, source hash and UTC import time | Implemented |
 | `storage/datasets.py` | Transactional SQLite dataset snapshots | Implemented |
 | `cli.py` | Typer command parameters and Rich output | Implemented |
-| `crawler/` | Playwright observations; HTTPX only when necessary | Reserved package |
+| `crawler/` | Exact-origin/path scope, redaction, bounded Playwright observations | Implemented conservatively |
+| `models/crawl.py` | Crawl configuration and sanitized observations | Implemented |
+| `storage/crawls.py` | Append-only crawl snapshots in SQLite | Implemented |
 | `detectors/` | Authentication, upload, OAuth/OIDC, WebSocket, GraphQL evidence | Reserved package |
 | `classifier/` | Deterministic applicability rules and human decision resolution | Reserved package |
 | `reporting/` | OpenPyXL output with safe cell serialization | Reserved package |
@@ -39,7 +41,7 @@ paraphrasing. Level conversion occurs only during selection. Frozen model fields
 discourage accidental reassignment, but nested lists are not deeply immutable;
 callers must treat validated datasets as read-only.
 
-Future evidence flow:
+Evidence flow (detectors and later stages remain planned):
 
 ```text
 scope + browser state -> bounded crawler -> redacted observations
@@ -55,7 +57,8 @@ needs positive exclusion evidence, never merely missing observations. Confirmed
 N/A is human-only and requires reviewer identity, justification, and timestamp.
 Human decisions must not overwrite automated decisions.
 
-Before crawler implementation, define scope as explicit origins/path constraints,
+The implemented crawler uses one explicit origin and a path subtree; see docs/crawler.md.
+Future extensions must maintain scope constraints,
 including redirects, subresources, WebSockets, popups, and service-worker behavior.
 Set separate navigation, page, depth, request, timeout, and rate limits. Block form
 submission and state-changing requests; recognize that even GET routes may mutate

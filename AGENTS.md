@@ -20,8 +20,8 @@ updating it; never overwrite concurrent changes.
 ## Scope and architecture
 
 Read README.md and progress_tracker.md first. This repository currently implements
-only the dataset foundation. Do not imply that reserved packages implement crawling,
-detection, classification, review, or reporting. Follow the user's current milestone
+the dataset foundation and a conservative browser crawler. Do not imply that
+reserved packages implement detection, classification, review, or reporting. Follow the user's current milestone
 scope. Keep CLI presentation, domain models, import, crawling, detectors, mappings,
 classification, persistence, and reporting separate. Prefer small functions over
 frameworks or speculative abstraction.
@@ -37,7 +37,8 @@ Do not add LLM classification or additional application frameworks.
 
 ## Testing
 
-Run `python -m pytest -q` using the project's virtual environment. Add meaningful
+Run `python -m pytest -q` using the project's virtual environment, with the crawl
+extra and Chromium installed for full browser integration coverage. Add meaningful
 tests for changed behavior and rejection paths. Dataset tests must remain offline;
 crawl tests must use authorized local fixtures/mocks, never public sites. Test scope
 boundaries, redirects, request limits, redaction, and human-only Confirmed N/A rules

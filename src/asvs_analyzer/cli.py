@@ -1,4 +1,4 @@
-"""Dataset commands. Assessment commands arrive in later milestones."""
+"""Dataset and authorized reconnaissance commands."""
 from pathlib import Path
 import sqlite3
 from typing import Annotated
@@ -12,7 +12,7 @@ from asvs_analyzer.asvs.importer import DatasetImportError, import_dataset
 from asvs_analyzer.config import Settings
 from asvs_analyzer.storage.datasets import DatasetStore
 
-app = typer.Typer(no_args_is_help=True, help="ASVS applicability scoping assistant. Dataset milestone; no security verdicts.")
+app = typer.Typer(no_args_is_help=True, help="ASVS applicability scoping assistant. No security verdicts.")
 console = Console(markup=False)
 errors = Console(stderr=True, markup=False)
 DatabaseOption = Annotated[Path, typer.Option("--db", help="Local SQLite database path.")]
@@ -59,6 +59,48 @@ def requirements(
     for item in selected:
         table.add_row(item.requirement.id, item.requirement.level, item.chapter_name, item.section_name, item.requirement.description)
     console.print(table)
+
+
+@app.command("crawl")
+def crawl_command(
+    target: Annotated[str, typer.Option(help="Authorized HTTP(S) target; defines the only allowed origin.")],
+    authorized: Annotated[bool, typer.Option("--authorized", help="Confirm you are authorized to crawl this target.")] = False,
+    scope_path: Annotated[str, typer.Option(help="Allowed path subtree for ALL requests.")] = "/",
+    max_depth: Annotated[int, typer.Option(min=0, max=20)] = 3,
+    max_pages: Annotated[int, typer.Option(min=1, max=10000)] = 50,
+    max_requests: Annotated[int, typer.Option(min=1, max=100000)] = 500,
+    timeout_ms: Annotated[int, typer.Option(min=100, max=120000)] = 10000,
+    duration_seconds: Annotated[int, typer.Option(min=1, max=86400)] = 120,
+    delay_ms: Annotated[int, typer.Option(min=0, max=60000)] = 200,
+    settle_ms: Annotated[int, typer.Option(min=0, max=10000)] = 300,
+    storage_state: Annotated[Path | None, typer.Option(help="Secret Playwright browser state file; never stored in the report.")] = None,
+    exclude_path: Annotated[list[str] | None, typer.Option(help="Additional excluded path subtree; repeatable.")] = None,
+    db: DatabaseOption = Settings().database,
+) -> None:
+    """Observe an authorized application without submitting forms or assessing vulnerabilities."""
+    import asyncio
+    from asvs_analyzer.models.crawl import CrawlConfig
+    from asvs_analyzer.storage.crawls import CrawlStore
+    try:
+        config = CrawlConfig(target=target, authorized=authorized, scope_path=scope_path,
+            max_depth=max_depth, max_pages=max_pages, max_requests=max_requests,
+            timeout_ms=timeout_ms, duration_seconds=duration_seconds, delay_ms=delay_ms,
+            settle_ms=settle_ms, storage_state=storage_state, exclude_paths=exclude_path or [])
+    except ValidationError:
+        fail("Invalid crawl configuration; use --authorized, an HTTP(S) URL without credentials, and a scope path containing the target")
+    try:
+        from asvs_analyzer.crawler.browser import CrawlError, crawl
+    except ImportError:
+        fail("Install crawl dependencies: pip install -e '.[crawl]' and python -m playwright install chromium")
+    try:
+        run = asyncio.run(crawl(config))
+        run_id = CrawlStore(db).save(run)
+    except CrawlError as exc:
+        fail(str(exc))
+    except (OSError, sqlite3.Error):
+        fail("Cannot persist crawl; check database path, permissions, and format")
+    console.print(f"Crawl {run_id}: {len(run.pages)} pages, {run.requests_sent} requests; stop: {run.stop_reason}.")
+    console.print("Observations stored with redacted URLs and cookie attributes. No applicability or security verdicts.")
 
 
 if __name__ == "__main__":
