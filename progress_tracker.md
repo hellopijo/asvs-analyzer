@@ -2,10 +2,9 @@
 
 ## Current milestone
 
-Milestone 2 implemented: conservative authorized Playwright crawling, sanitized
-observations, SQLite crawl snapshots, CLI options, and real local-browser tests.
-Dataset import and cumulative ASVS filtering remain available. Feature detection,
-classification, human review, and reporting remain future milestones.
+Milestone 3 implemented: five evidence-based feature detectors, the offline `detect`
+CLI, and persisted feature results. ASVS mappings, applicability decisions, human
+review, and Excel reports remain future milestones.
 
 ## Phases
 
@@ -13,11 +12,11 @@ classification, human review, and reporting remain future milestones.
 | --- | --- | --- |
 | 1. Dataset integration | Complete for 5.0.0 standard hierarchical JSON | Official fixture, strict schema, full hierarchy/text preservation, version and source hash, cumulative levels, SQLite, CLI |
 | 2. Crawler | Conservative implementation | Explicit authorization, exact origin/path scope, zero-hop redirect inspection, limits, deduplication, state import, sanitized observations, SQLite, CLI and local Chromium fixtures |
-| 3. Feature detection | Not started | Authentication, file upload, OAuth/OIDC, WebSocket, GraphQL; structured evidence and limitations |
+| 3. Feature detection | Implemented | All five detectors, evidence pointers, confidence, versioning, limitations, offline CLI and SQLite snapshots |
 | 4. Mapping engine | Not started | Review official text; explicit versioned ID mappings separate from detectors |
 | 5. Classification/review | Not started | All scoped requirements, evidence-backed decisions, human overrides and audit records |
 | 6. Excel reporting | Not started | Summary, requirements, features, crawl results; formatting and safe cell values |
-| 7. Tests | Complete for current milestone | 99 passing tests: dataset, scope/redaction, and real Chromium against local HTTP fixtures |
+| 7. Tests | Complete for current milestone | 132 passing tests, including detectors, persistence/CLI, and real Chromium fixtures |
 | 8. Documentation | Complete for current milestone | README, architecture, schema/provenance, AGENTS, tracker; expand with each phase |
 
 ## Verification performed
@@ -48,7 +47,8 @@ classification, human review, and reporting remain future milestones.
 
 - User requested ongoing commits and GitHub pushes after each completed coherent
   change. The workspace's `.git` is a read-only empty placeholder; local history
-  uses `.asvs-git` with an explicit work tree. GitHub destination is
+  previously used `.asvs-git` with an explicit work tree. The current environment
+  has a normal clone at `/workspace/asvs-analyzer`. GitHub destination is
   `https://github.com/hellopijo/asvs-analyzer`, branch `main`. Publish through the
   GitHub connector when shell authentication is unavailable, preserving the remote
   history and checking its head before updates.
@@ -86,8 +86,7 @@ classification, human review, and reporting remain future milestones.
   and all modeled fields are preserved. The original fixture remains in `data/`.
 - Frozen Pydantic fields do not make nested collections deeply immutable; treat
   datasets as read-only.
-- Feature detection, mappings, applicability, review persistence, and Excel output
-  have not been implemented. No security verdicts are produced by the crawler.
+- Mappings, applicability, review persistence, and Excel output have not been implemented. No security verdicts are produced by the crawler.
 - Coverage excludes blocked API POSTs, resource redirects, SSO across origins,
   frames/workers/WebSockets, and interaction-only functionality.
 - GET endpoints may mutate state; denylisted action names are not comprehensive.
@@ -99,10 +98,26 @@ classification, human review, and reporting remain future milestones.
 
 ## Next recommended actions
 
-1. Implement the five structured feature detectors over sanitized observations:
-   authentication, upload, OAuth/OIDC, WebSocket, and GraphQL.
-2. Preserve observation IDs, confidence and limitations for each detector; blocked
-   attempts and missing evidence must not be confused with completed functionality
-   or confirmed absence.
-3. Review actual ASVS text before introducing explicit, versioned feature mappings.
-4. Add classification, human review, and Excel reports in later milestones.
+1. Review the actual ASVS 5.0 requirements and implement explicit, versioned mappings.
+2. Classify every scoped requirement; insufficient evidence remains Needs Review.
+3. Add human review and Excel reporting in subsequent milestones.
+
+## Feature detection decisions
+
+- Detector version 1.0.0; deterministic explicit signals with maximum supporting
+  score, not accumulated keyword matches or probability estimates.
+- Results are observed, suspected, or not_observed. None means applicability or
+  vulnerability. All five features appear even when evidence is missing.
+- Evidence references the source crawl with JSON pointers and observation IDs,
+  source/endpoint URLs, timestamps, and a serialized-source SHA-256.
+- Page timestamps use crawl start because per-page capture timestamps are absent.
+- Relative redirect locations are normalized before redaction; GraphQL response
+  media types are retained for new crawls. Old snapshots are not rewritten.
+- OAuth/OIDC distinction, custom GraphQL endpoints, passwordless authentication,
+  and unusual session-cookie names remain limited by available evidence.
+- README shortened to installation, examples, and result meanings; rule details
+  are in docs/detectors.md.
+
+- Feature milestone validation: **132 passed in 23.75s**. Includes negative signals,
+  custom GraphQL endpoints, blocked attempts, evidence reference resolution, source
+  hashing, persistence/CLI, and a real local crawl detecting all five features.

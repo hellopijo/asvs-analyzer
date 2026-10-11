@@ -14,7 +14,8 @@ introduced when there are actual competing implementations, not speculatively.
 | `crawler/` | Exact-origin/path scope, redaction, bounded Playwright observations | Implemented conservatively |
 | `models/crawl.py` | Crawl configuration and sanitized observations | Implemented |
 | `storage/crawls.py` | Append-only crawl snapshots in SQLite | Implemented |
-| `detectors/` | Authentication, upload, OAuth/OIDC, WebSocket, GraphQL evidence | Reserved package |
+| `detectors/` | Five deterministic detectors over saved crawl evidence | Implemented |
+| `models/features.py`, `storage/features.py` | Validated detection results and SQLite snapshots | Implemented |
 | `classifier/` | Deterministic applicability rules and human decision resolution | Reserved package |
 | `reporting/` | OpenPyXL output with safe cell serialization | Reserved package |
 
@@ -41,7 +42,7 @@ paraphrasing. Level conversion occurs only during selection. Frozen model fields
 discourage accidental reassignment, but nested lists are not deeply immutable;
 callers must treat validated datasets as read-only.
 
-Evidence flow (detectors and later stages remain planned):
+Evidence flow (ASVS mappings and later stages remain planned):
 
 ```text
 scope + browser state -> bounded crawler -> redacted observations

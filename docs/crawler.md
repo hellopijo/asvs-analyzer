@@ -82,7 +82,8 @@ This milestone records header presence, not sufficient values for security analy
 Crawl controls are application-level and do not replace an OS/network sandbox for
 hostile browser code. Background Chromium behavior and all browser-native protocols
 are not exhaustively modeled. No multi-origin scope, active interactions, HTTPX
-fallback, feature detection, ASVS classification, or compliance assertions exist.
+fallback, ASVS classification or compliance assertions exist. Feature detection is a separate
+offline command; see docs/detectors.md.
 
 ## Local tests
 

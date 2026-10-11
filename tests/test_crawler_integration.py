@@ -209,3 +209,23 @@ def test_rate_wait_does_not_send_after_deadline():
             duration_seconds=1, settle_ms=5000, delay_ms=2000)))
         assert run.stop_reason == 'duration_limit'
         assert [h[1] for h in hits] == ['/']
+
+
+def test_crawl_to_all_five_feature_detectors():
+    from asvs_analyzer.detectors.engine import detect_features
+    with server() as (local, base, hits):
+        local.routes['/'] = (200, {}, f'''<form method="post"><input type="password"><input type="file"></form>
+        <a href="/start">sign in</a>
+        <script>
+        fetch('/api', {{method:'POST',headers:{{'Content-Type':'application/graphql'}},body:'PAYLOAD_SECRET'}}).catch(()=>{{}});
+        new WebSocket('ws://127.0.0.1:{local.server_port}/socket?token=SOCKET_SECRET');
+        </script>''')
+        local.routes['/start'] = (302, {'Location':'/authorize?client_id=CLIENT_SECRET&response_type=code&redirect_uri=CALLBACK_SECRET'}, '')
+        crawl_run = execute(base)
+        result = detect_features(crawl_run)
+        assert all(f.status == 'observed' for f in result.features)
+        assert all(f.evidence for f in result.features)
+        assert all(h[0] == 'GET' for h in hits)
+        serialized = result.model_dump_json()
+        for secret in ('PAYLOAD_SECRET','SOCKET_SECRET','CLIENT_SECRET','CALLBACK_SECRET'):
+            assert secret not in serialized

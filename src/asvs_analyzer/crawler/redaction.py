@@ -52,7 +52,7 @@ class Redactor:
             result[key] = "[PRESENT]"
             if key == "content-type":
                 mime = value.split(";", 1)[0].lower().strip()
-                if mime in {"text/html", "application/json", "application/graphql", "application/javascript", "text/css", "multipart/form-data"}:
+                if mime in {"text/html", "application/json", "application/graphql", "application/graphql-response+json", "application/javascript", "text/css", "multipart/form-data"}:
                     result[key] = mime
             elif key == "location":
                 result[key] = self.url(value)

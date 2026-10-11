@@ -168,7 +168,9 @@ async def crawl(config: CrawlConfig) -> CrawlRun:
                 response = await route.fetch(max_redirects=0, max_retries=0, timeout=config.timeout_ms)
                 for cookie in await context.cookies():
                     redactor.remember(cookie['value'])
-                headers = response.headers
+                headers = dict(response.headers)
+                if 'location' in headers:
+                    headers['location'] = urljoin(request.url, headers['location'])
                 record(kind='response', source_url=redactor.url(intended), url=redactor.url(request.url),
                        status=response.status, attributes=redactor.headers(headers))
                 if 300 <= response.status < 400 and 'location' in headers:

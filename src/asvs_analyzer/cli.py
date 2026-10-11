@@ -103,5 +103,41 @@ def crawl_command(
     console.print("Observations stored with redacted URLs and cookie attributes. No applicability or security verdicts.")
 
 
+@app.command("detect")
+def detect_command(
+    run_id: Annotated[str, typer.Option(help="Crawl ID printed by the crawl command.")],
+    db: DatabaseOption = Settings().database,
+    details: Annotated[bool, typer.Option(help="Show supporting evidence references and limitations.")] = False,
+) -> None:
+    """Identify feature hints from a saved crawl, without contacting the target."""
+    from asvs_analyzer.detectors.engine import detect_features
+    from asvs_analyzer.storage.crawls import CrawlStore
+    from asvs_analyzer.storage.features import FeatureStore
+    if not db.is_file():
+        fail("Database not found; run crawl first or supply --db")
+    try:
+        result = detect_features(CrawlStore(db).load(run_id))
+        FeatureStore(db).save(result)
+    except LookupError:
+        fail("Crawl ID not found; use the ID printed by crawl")
+    except (OSError, sqlite3.Error, ValidationError, ValueError):
+        fail("Cannot read crawl or save feature results; check database integrity and permissions")
+    console.print(f"Feature run {result.id} | detector version {result.detector_version}")
+    table = Table("Feature", "Status", "Confidence", "Evidence count")
+    for feature in result.features:
+        table.add_row(feature.feature, feature.status, f"{feature.confidence:.0%}", str(len(feature.evidence)))
+    console.print(table)
+    console.print("Not observed means no supporting evidence was found; the feature may still exist.")
+    if details:
+        for feature in result.features:
+            console.print(feature.feature)
+            for evidence in feature.evidence:
+                console.print(f"  {evidence.reference}: {evidence.summary} ({evidence.source_url})")
+            for limitation in feature.limitations:
+                console.print(f"  Limitation: {limitation}")
+        for limitation in result.limitations:
+            console.print(f"Coverage: {limitation}")
+
+
 if __name__ == "__main__":
     app()
